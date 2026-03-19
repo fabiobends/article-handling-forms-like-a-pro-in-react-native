@@ -75,24 +75,34 @@ export default function Screen() {
           value={data.firstName}
           errorText={errors.firstName}
           onChangeText={onChangeField("firstName")}
+          textContentType="givenName"
+          autoComplete="given-name"
         />
         <TextField
           label="Last Name"
           value={data.lastName}
           errorText={errors.lastName}
           onChangeText={onChangeField("lastName")}
+          textContentType="familyName"
+          autoComplete="family-name"
         />
         <TextField
           label="Email"
           value={data.email}
           errorText={errors.email}
           onChangeText={onChangeField("email")}
+          textContentType="emailAddress"
+          autoComplete="email"
+          keyboardType="email-address"
         />
         <TextField
           label="Password"
           value={data.password}
           errorText={errors.password}
           onChangeText={onChangeField("password")}
+          textContentType="password"
+          autoComplete="password"
+          secureTextEntry
         />
         <Button label="Submit" onPress={onSubmit} />
       </View>

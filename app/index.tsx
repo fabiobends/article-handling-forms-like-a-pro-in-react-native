@@ -1,6 +1,14 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  KeyboardAwareScrollView,
+  KeyboardToolbar,
+} from "react-native-keyboard-controller";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { z } from "zod";
 
 import { Button } from "@/components/button";
 import { TextField } from "@/components/text-field";
@@ -12,97 +20,167 @@ const SuperiorBlock = () => (
   </View>
 );
 
-interface FormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-}
+const schema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
-interface FormErrors {
-  firstName: string | undefined;
-  lastName: string | undefined;
-  email: string | undefined;
-  password: string | undefined;
-}
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const rules: Record<keyof FormData, (value: string) => string | undefined> = {
-  firstName: (value) =>
-    value.length === 0 ? "First name is required" : undefined,
-  lastName: (value) =>
-    value.length === 0 ? "Last name is required" : undefined,
-  email: (value) =>
-    !emailRegex.test(value) ? "Enter a valid email" : undefined,
-  password: (value) =>
-    value.length < 8 ? "Password must be at least 8 characters" : undefined,
-};
+type FormData = z.infer<typeof schema>;
 
 export default function Screen() {
-  const [data, setData] = useState<FormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-  });
-  const [errors, setErrors] = useState<FormErrors>({
-    firstName: undefined,
-    lastName: undefined,
-    email: undefined,
-    password: undefined,
+  const [loading, setLoading] = useState(false);
+
+  const lastNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+
+  const { control, handleSubmit } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+    },
+    mode: "onBlur",
   });
 
-  const onChangeField = (field: keyof FormData) => (value: string) => {
-    setErrors((prev) => ({
-      ...prev,
-      [field]: rules[field](value),
-    }));
-    setData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const onSubmit = () => console.log("submitting to API", data);
+  const onSubmit = handleSubmit(async (data) => {
+    setLoading(true);
+    console.log("submitting to API", data);
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    setLoading(false);
+  });
 
   return (
-    <View style={styles.centered}>
-      <SuperiorBlock />
-      <View style={styles.form}>
-        <TextField
-          label="First Name"
-          value={data.firstName}
-          errorText={errors.firstName}
-          onChangeText={onChangeField("firstName")}
-        />
-        <TextField
-          label="Last Name"
-          value={data.lastName}
-          errorText={errors.lastName}
-          onChangeText={onChangeField("lastName")}
-        />
-        <TextField
-          label="Email"
-          value={data.email}
-          errorText={errors.email}
-          onChangeText={onChangeField("email")}
-        />
-        <TextField
-          label="Password"
-          value={data.password}
-          errorText={errors.password}
-          onChangeText={onChangeField("password")}
-        />
-        <Button label="Submit" onPress={onSubmit} />
-      </View>
-    </View>
+    <>
+      <SafeAreaView style={styles.safe} edges={["bottom"]}>
+        <KeyboardAwareScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          bottomOffset={Platform.OS === "ios" ? 20 : 65}
+          keyboardShouldPersistTaps="handled"
+        >
+          <SuperiorBlock />
+          <View style={styles.form}>
+            <Controller
+              control={control}
+              name="firstName"
+              render={({
+                field: { onChange, onBlur, value },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  label="First Name"
+                  placeholder="John"
+                  helperText="As it appears on your ID"
+                  errorText={error?.message}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  onSubmitEditing={() => lastNameRef.current?.focus()}
+                  returnKeyType="next"
+                  autoComplete="given-name"
+                  textContentType="givenName"
+                  autoCapitalize="words"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="lastName"
+              render={({
+                field: { onChange, onBlur, value },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  ref={lastNameRef}
+                  label="Last Name"
+                  placeholder="Doe"
+                  helperText="As it appears on your ID"
+                  errorText={error?.message}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  onSubmitEditing={() => emailRef.current?.focus()}
+                  returnKeyType="next"
+                  autoComplete="family-name"
+                  textContentType="familyName"
+                  autoCapitalize="words"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="email"
+              render={({
+                field: { onChange, onBlur, value },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  ref={emailRef}
+                  label="Email"
+                  placeholder="john@example.com"
+                  helperText="We'll never share your email"
+                  errorText={error?.message}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  returnKeyType="next"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="password"
+              render={({
+                field: { onChange, onBlur, value },
+                fieldState: { error },
+              }) => (
+                <TextField
+                  ref={passwordRef}
+                  label="Password"
+                  placeholder="Minimum 8 characters"
+                  helperText="Use letters, numbers and symbols"
+                  errorText={error?.message}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  onSubmitEditing={onSubmit}
+                  returnKeyType="done"
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  secureTextEntry
+                  autoCapitalize="none"
+                />
+              )}
+            />
+            <Button label="Submit" onPress={onSubmit} loading={loading} />
+          </View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
+      <KeyboardToolbar />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
+  safe: {
     flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     padding: 24,
   },
@@ -117,22 +195,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   form: {
-    gap: 16,
-  },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
     gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
   },
 });

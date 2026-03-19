@@ -1,3 +1,4 @@
+import React from "react";
 import {
   StyleSheet,
   Text,
@@ -8,18 +9,31 @@ import {
 
 interface TextFieldProps extends TextInputProps {
   label: string;
+  helperText?: string;
   errorText?: string;
 }
 
-export const TextField = ({ label, errorText, ...props }: TextFieldProps) => {
-  return (
-    <View>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput style={styles.input} {...props} />
-      {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
-    </View>
-  );
-};
+export const TextField = React.forwardRef<TextInput, TextFieldProps>(
+  ({ label, helperText, errorText, style, ...props }, ref) => {
+    const bottomText = errorText || helperText;
+    const bottomStyle = errorText ? styles.errorText : styles.helperText;
+
+    return (
+      <View>
+        <Text style={styles.label}>{label}</Text>
+        <TextInput
+          ref={ref}
+          style={[styles.input, style]}
+          placeholderTextColor="#999"
+          {...props}
+        />
+        <View style={styles.bottomTextContainer}>
+          {bottomText ? <Text style={bottomStyle}>{bottomText}</Text> : null}
+        </View>
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   label: {
@@ -34,9 +48,16 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
   },
+  bottomTextContainer: {
+    minHeight: 18,
+    marginTop: 4,
+  },
+  helperText: {
+    color: "#666",
+    fontSize: 12,
+  },
   errorText: {
     color: "red",
     fontSize: 12,
-    marginTop: 4,
   },
 });
